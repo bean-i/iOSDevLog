@@ -9,22 +9,7 @@ import UIKit
 import SnapKit
 import Alamofire
 
-//당첨일, 당첨번호, 회차
-
-struct Lotto: Decodable {
-    let drwNoDate: String
-    let drwtNo1: Int
-    let drwtNo2: Int
-    let drwtNo3: Int
-    let drwtNo4: Int
-    let drwtNo5: Int
-    let drwtNo6: Int
-    let bnusNo: Int
-    let drwNo: Int
-}
-
 class LotteryViewController: UIViewController, ViewSetting {
-    
 
     let roundTextField = UITextField()
     
@@ -37,42 +22,43 @@ class LotteryViewController: UIViewController, ViewSetting {
     let currentRoundLabel = UILabel()
     let roundResultLabel = UILabel()
     
-    lazy var resultNumberCollectionView = UICollectionView(frame: .zero, collectionViewLayout: setCollectionViewLayout())
+    let resultNumberCollectionView = UICollectionView(frame: .zero, collectionViewLayout: UICollectionViewFlowLayout())
     
     let roundPickerView = UIPickerView()
     
     // 가장 최근 회차
-    var latestRound: Int = 1154 {
-        didSet {
-            currentRoundLabel.text = "\(latestRound)회"
+    var maxRound: Int {
+        get {
+            UserDefaults.standard.integer(forKey: "maxRound")
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: "maxRound")
         }
     }
-    var latestDate: String = "" {
-        didSet {
-            roundDateLabel.text = "\(latestDate)"
+    var maxDate: String {
+        get {
+            UserDefaults.standard.string(forKey: "maxDate") ?? ""
+        }
+        
+        set {
+            UserDefaults.standard.set(newValue, forKey: "maxDate")
         }
     }
+    lazy var selectedRound: Int = maxRound
+    var selectedDate: String = ""
     var numbers: [Int] = [1, 2, 3, 4, 5, 6, 7] {
         didSet {
             resultNumberCollectionView.reloadData()
         }
     }
     
+    var url = "https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo="
+    var currentLottoResult: Lotto?
+    
     override func viewDidLoad() {
         super.viewDidLoad()
-        
-        let url = "https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=\(latestRound)"
-        AF.request(url, method: .get).responseDecodable(of: Lotto.self) { response in
-            switch response.result {
-            case .success(let value):
-                self.latestRound = value.drwNo
-                self.latestDate = value.drwNoDate
-                self.numbers = [value.drwtNo1, value.drwtNo2, value.drwtNo3, value.drwtNo4, value.drwtNo5, value.drwtNo6, value.bnusNo]
-            case .failure(_):
-                print("error")
-            }
-        }
-        
+        getLatest()
+        getLottoData(String(selectedRound))
         setHierarchy()
         setLayout()
         setView()
@@ -164,7 +150,7 @@ class LotteryViewController: UIViewController, ViewSetting {
         roundInfoLabel.textAlignment = .left
         
         // roundDateLabel
-        roundDateLabel.text = "\(latestDate)"
+        roundDateLabel.text = "\(selectedDate)"
         roundDateLabel.textAlignment = .right
         roundDateLabel.textColor = .gray
         roundDateLabel.font = .systemFont(ofSize: 12)
@@ -173,7 +159,7 @@ class LotteryViewController: UIViewController, ViewSetting {
         underLineView.backgroundColor = .lightGray
         
         // currentRoundLabel
-        currentRoundLabel.text = "\(latestRound)회"
+        currentRoundLabel.text = "\(selectedRound)회"
         currentRoundLabel.textAlignment = .left
         currentRoundLabel.textColor = .systemYellow
         currentRoundLabel.font = .systemFont(ofSize: 24, weight: .bold)
@@ -190,6 +176,7 @@ class LotteryViewController: UIViewController, ViewSetting {
         // resultNumberCollectionView
         resultNumberCollectionView.delegate = self
         resultNumberCollectionView.dataSource = self
+        resultNumberCollectionView.collectionViewLayout = setCollectionViewLayout()
         resultNumberCollectionView.register(resultNumberCollectionViewCell.self, forCellWithReuseIdentifier: resultNumberCollectionViewCell.identifier)
         
     }
@@ -209,6 +196,50 @@ class LotteryViewController: UIViewController, ViewSetting {
         return layout
     }
     
+    func getLatest() {
+        // 임시로 초기화 해놓았는데, 보통 이런 초기화는 어디서 하는지 궁금합니다.!
+        UserDefaults.standard.removeObject(forKey: "maxRound")
+        UserDefaults.standard.set(1154, forKey: "maxRound")
+        
+        UserDefaults.standard.removeObject(forKey: "maxDate")
+        UserDefaults.standard.set("20250111", forKey: "maxDate")
+        
+        let weekAgo = Calendar.current.date(byAdding: .day, value: -7, to: Date())!
+        let weekAgoString = Date.dateToString(weekAgo)
+        if weekAgoString == maxDate {
+            print("이전 회차로부터 1주일이 지났습니다.")
+            let newRound = maxRound + 1
+            maxRound = newRound // 회차 늘려주기
+            maxDate = weekAgoString
+        }
+    }
+    
+    func getLottoData(_ round: String) {
+        AF.request(url + round, method: .get).responseDecodable(of: Lotto.self) { response in
+            switch response.result {
+            case .success(let value):
+                self.currentLottoResult = value
+                
+                guard let result = self.currentLottoResult else {
+                    return
+                }
+                
+                self.updateUI(result)
+            case .failure(_):
+                print("error")
+            }
+        }
+    }
+    
+    func updateUI(_ value: Lotto) {
+        selectedRound = value.drwNo
+        selectedDate = value.drwNoDate
+        numbers = [value.drwtNo1, value.drwtNo2, value.drwtNo3, value.drwtNo4, value.drwtNo5, value.drwtNo6, value.bnusNo]
+        
+        roundDateLabel.text = "\(selectedDate)"
+        currentRoundLabel.text = "\(selectedRound)회"
+        roundTextField.text = "\(selectedRound)"
+    }
 
 }
 
@@ -225,30 +256,16 @@ extension LotteryViewController: UIPickerViewDelegate, UIPickerViewDataSource {
     }
     
     func pickerView(_ pickerView: UIPickerView, numberOfRowsInComponent component: Int) -> Int {
-        return 1154
+        return maxRound
     }
     
     func pickerView(_ pickerView: UIPickerView, titleForRow row: Int, forComponent component: Int) -> String? {
-        return String(1154 - row)
+        return String(maxRound - row)
     }
     
     func pickerView(_ pickerView: UIPickerView, didSelectRow row: Int, inComponent component: Int) {
-        let selectedRound = 1154 - row
-        
-        roundTextField.text = String(selectedRound)
-        
-        let url = "https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=\(selectedRound)"
-        
-        AF.request(url, method: .get).responseDecodable(of: Lotto.self) { response in
-            switch response.result {
-            case .success(let value):
-                self.latestRound = value.drwNo
-                self.latestDate = value.drwNoDate
-                self.numbers = [value.drwtNo1, value.drwtNo2, value.drwtNo3, value.drwtNo4, value.drwtNo5, value.drwtNo6, value.bnusNo]
-            case .failure(_):
-                print("error")
-            }
-        }
+        let selectedRound = maxRound - row
+        getLottoData(String(selectedRound))
         
     }
     
