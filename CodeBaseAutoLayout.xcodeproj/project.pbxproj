@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		EA261A772D364062005AA6EC /* Alamofire in Frameworks */ = {isa = PBXBuildFile; productRef = EA261A762D364062005AA6EC /* Alamofire */; };
 		EAE5122F2D34FFA800B7979E /* SnapKit in Frameworks */ = {isa = PBXBuildFile; productRef = EAE5122E2D34FFA800B7979E /* SnapKit */; };
 /* End PBXBuildFile section */
 
@@ -41,6 +42,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				EAE5122F2D34FFA800B7979E /* SnapKit in Frameworks */,
+				EA261A772D364062005AA6EC /* Alamofire in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -84,6 +86,7 @@
 			name = CodeBaseAutoLayout;
 			packageProductDependencies = (
 				EAE5122E2D34FFA800B7979E /* SnapKit */,
+				EA261A762D364062005AA6EC /* Alamofire */,
 			);
 			productName = CodeBaseAutoLayout;
 			productReference = EAE511A52D34FDFB00B7979E /* CodeBaseAutoLayout.app */;
@@ -115,6 +118,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				EAE5122D2D34FFA800B7979E /* XCRemoteSwiftPackageReference "SnapKit" */,
+				EA261A752D364062005AA6EC /* XCRemoteSwiftPackageReference "Alamofire" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = EAE511A62D34FDFB00B7979E /* Products */;
@@ -354,6 +358,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		EA261A752D364062005AA6EC /* XCRemoteSwiftPackageReference "Alamofire" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Alamofire/Alamofire.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.10.2;
+			};
+		};
 		EAE5122D2D34FFA800B7979E /* XCRemoteSwiftPackageReference "SnapKit" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/SnapKit/SnapKit.git";
@@ -365,6 +377,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		EA261A762D364062005AA6EC /* Alamofire */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = EA261A752D364062005AA6EC /* XCRemoteSwiftPackageReference "Alamofire" */;
+			productName = Alamofire;
+		};
 		EAE5122E2D34FFA800B7979E /* SnapKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = EAE5122D2D34FFA800B7979E /* XCRemoteSwiftPackageReference "SnapKit" */;
