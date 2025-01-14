@@ -45,18 +45,26 @@ class MovieSearchCollectionViewCell: UICollectionViewCell {
         super.init(frame: frame)
         setUI()
         setAutoLayout()
-        // dateLabel의 compression resistance priority를 높여서, 줄어들지 않고 자신의 컨텐츠 유지하도록 설정
-        dateLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
+        
+        // movieNameLabel의 huggingPriority를 낮춰서 늘어날 수 있도록 하고
+        // dateLabel의 compressionResistancePriority를 높여서 Intrinsic Content Size를 항상 갖도록
+        // 2가지 제약 조건만 걸면, 레이아웃이 원했던 대로 안 잡힙니다..
+        // 2가지만 걸어줘도 상대적으로 값이 높아지거나 낮아져서 잘 잡혀야 하는 것 아닌가요?! 왜 다 설정해줘야 하는지 모르겠습니다..!
+        movieNameLabel.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        movieNameLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        
+        dateLabel.setContentHuggingPriority(.defaultHigh, for: .horizontal)
+        dateLabel.setContentCompressionResistancePriority(.defaultHigh, for: .horizontal)
     }
     
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
     
-    func setData(_ item: Movie, _ index: Int) {
-        rankLabel.text = String(index + 1)
-        movieNameLabel.text = item.name
-        dateLabel.text = item.date
+    func setData(_ item: Movie) {
+        rankLabel.text = item.rank
+        movieNameLabel.text = item.movieNm
+        dateLabel.text = item.openDt
     }
     
     func setUI() {
@@ -85,8 +93,8 @@ class MovieSearchCollectionViewCell: UICollectionViewCell {
         
         movieNameLabel.snp.makeConstraints { make in
             make.leading.equalTo(rankView.snp.trailing).offset(15)
-            make.trailing.equalTo(dateLabel.snp.leading).offset(-10)
             make.centerY.equalToSuperview()
+            make.trailing.equalTo(dateLabel.snp.leading).offset(-10)
         }
         
         dateLabel.snp.makeConstraints { make in

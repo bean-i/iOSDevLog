@@ -7,71 +7,41 @@
 
 import UIKit
 import SnapKit
+import Alamofire
 
-class MovieSearchViewController: UIViewController {
+class MovieSearchViewController: UIViewController, ViewSetting {
     
-    let backgroundImageView = {
-        let img = UIImageView()
-        img.image = UIImage(named: "film")
-        img.contentMode = .scaleAspectFill
-        img.layer.shadowColor = UIColor.darkGray.cgColor
-        return img
-    }()
     
-    let backgroundShadowView = {
-        let shadowView = UIView()
-        shadowView.backgroundColor = .black
-        shadowView.layer.opacity = 0.7
-        return shadowView
-    }()
+    let backgroundImageView = UIImageView()
+    let backgroundShadowView = UIView()
     
-    let searchView = {
-        let searchView = UIView()
-//        searchView.backgroundColor = .green
-        return searchView
-    }()
+    let searchView = UIView()
+    let searchTextField = UITextField()
+    let searchUnderLineView = UIView()
+    let searchButton = UIButton()
     
-    let searchTextField = {
-        let tf = UITextField()
-        tf.placeholder = "영화를 검색해 보세요."
-        tf.textColor = .white
-//        tf.backgroundColor = .red
-        return tf
-    }()
+    let movieCollectionView = UICollectionView(frame: .zero, collectionViewLayout: UICollectionViewFlowLayout())
     
-    let searchUnderLineView = {
-        let lineView = UIView()
-        lineView.backgroundColor = .white
-        return lineView
-    }()
+    var url = "https://kobis.or.kr/kobisopenapi/webservice/rest/boxoffice/searchDailyBoxOfficeList.json?key=0bc4ffa481b80d1d29745a4dd826eae1&targetDt="
     
-    let searchButton = {
-        let btn = UIButton()
-        btn.backgroundColor = .white
-        btn.setTitle("검색", for: .normal)
-        btn.setTitleColor(.black, for: .normal)
-        return btn
-    }()
+    var movieData: [Movie] = [] {
+        didSet {
+            movieCollectionView.reloadData()
+        }
+    }
     
-    lazy var movieCollectionView = {
-        let collectionView = UICollectionView(frame: .zero, collectionViewLayout: setCollectionViewLayout())
-        collectionView.backgroundColor = .clear
-        return collectionView
-    }()
-    
+    static let yesterday: String = Date.dateToString(Date.yesterday)
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        setUI()
-        setAutoLayout()
+        getMovieData(url + MovieSearchViewController.yesterday)
         
-        movieCollectionView.delegate = self
-        movieCollectionView.dataSource = self
-        movieCollectionView.register(MovieSearchCollectionViewCell.self, forCellWithReuseIdentifier: "MovieSearchCollectionViewCell")
+        setHierarchy()
+        setLayout()
+        setView()
     }
     
-    func setUI() {
-        
+    func setHierarchy() {
         [
             searchTextField,
             searchUnderLineView,
@@ -86,7 +56,7 @@ class MovieSearchViewController: UIViewController {
         ].forEach { view.addSubview($0) }
     }
     
-    func setAutoLayout() {
+    func setLayout() {
         backgroundImageView.snp.makeConstraints { make in
             make.edges.equalToSuperview()
         }
@@ -127,6 +97,40 @@ class MovieSearchViewController: UIViewController {
         }
     }
     
+    func setView() {
+        // backgroundImageView
+        backgroundImageView.image = UIImage(named: "film")
+        backgroundImageView.contentMode = .scaleAspectFill
+        backgroundImageView.layer.shadowColor = UIColor.darkGray.cgColor
+        
+        // backgroundShadowView
+        backgroundShadowView.backgroundColor = .black
+        backgroundShadowView.layer.opacity = 0.7
+        
+        // searchTextField
+        searchTextField.delegate = self
+        
+        searchTextField.text = MovieSearchViewController.yesterday
+        searchTextField.textColor = .white
+        
+        // searchUnderLineView
+        searchUnderLineView.backgroundColor = .white
+        
+        // searchButton
+        searchButton.backgroundColor = .white
+        searchButton.setTitle("검색", for: .normal)
+        searchButton.setTitleColor(.black, for: .normal)
+        searchButton.addTarget(self, action: #selector(searchButtonTapped), for: .touchUpInside)
+        
+        // movieCollectionView
+        movieCollectionView.delegate = self
+        movieCollectionView.dataSource = self
+        movieCollectionView.register(MovieSearchCollectionViewCell.self, forCellWithReuseIdentifier: "MovieSearchCollectionViewCell")
+        movieCollectionView.collectionViewLayout = setCollectionViewLayout()
+        
+        movieCollectionView.backgroundColor = .clear
+    }
+    
     func setCollectionViewLayout() -> UICollectionViewLayout {
         let layout = UICollectionViewFlowLayout()
         layout.scrollDirection = .vertical
@@ -135,7 +139,38 @@ class MovieSearchViewController: UIViewController {
         return layout
     }
     
+    func getMovieData(_ url: String) {
+        AF.request(url, method: .get).responseDecodable(of: MovieBox.self) { response in
+            switch response.result {
+            case .success(let value):
+                print(value)
+                self.movieData = value.boxOfficeResult.dailyBoxOfficeList
+            case .failure(let error):
+                print(error)
+            }
+        }
+    }
     
+    func getMovieDataFromDate() {
+        guard let searchDate = searchTextField.text,
+              !searchDate.isEmpty else {
+            print("입력 오류")
+            return
+        }
+        getMovieData(url + searchDate)
+    }
+    
+    @objc func searchButtonTapped() {
+        getMovieDataFromDate()
+    }
+}
+
+extension MovieSearchViewController: UITextFieldDelegate {
+    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+        getMovieDataFromDate()
+        view.endEditing(true)
+        return true
+    }
 }
 
 extension MovieSearchViewController: UICollectionViewDelegate, UICollectionViewDataSource {
@@ -146,7 +181,7 @@ extension MovieSearchViewController: UICollectionViewDelegate, UICollectionViewD
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "MovieSearchCollectionViewCell", for: indexPath) as! MovieSearchCollectionViewCell
-        cell.setData(movieData[indexPath.item], indexPath.item)
+        cell.setData(movieData[indexPath.item])
         
         return cell
     }
